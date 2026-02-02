@@ -31,6 +31,13 @@
   - Using `@open-mcp/vercel` server
   - Added Vercel authentication token
   - **Action Required**: Restart Claude Code to activate MCP
+- [x] Git & GitHub Setup
+  - Initialized Git repository
+  - Installed and authenticated GitHub CLI (gh)
+  - Created initial commit (136 files, 14736+ insertions)
+  - Created GitHub repository: `ciprix-yp/workshop-registration-migration`
+  - Pushed code to GitHub (main branch)
+  - **Action Required**: Connect GitHub repo to Vercel via UI
 
 ---
 
@@ -219,9 +226,16 @@
 
 ## 📝 Notes & Issues
 
+### Deployment Configuration
+
+**Custom Domain**: `formular.bizzclub-satumare.ro`
+- Domain needs to be configured in Vercel after initial deployment
+- DNS records will need to be updated (CNAME or A record)
+
 ### Open Questions
+
 - [ ] Does client prefer keeping Google Sheets or migrating to database?
-- [ ] Is custom domain needed for Vercel deployment?
+- [x] Custom domain: `formular.bizzclub-satumare.ro` ✅
 - [ ] Should we add email notifications on registration?
 - [ ] Analytics/monitoring requirements?
 
