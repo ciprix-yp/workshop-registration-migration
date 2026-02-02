@@ -1,17 +1,17 @@
 #!/bin/bash
 
-# DNS Propagation Checker for formular.bizzclub-satumare.ro
+# DNS Propagation Checker for formular.bizzclub-satumare.app
 
-echo "🔍 Verificare DNS pentru formular.bizzclub-satumare.ro"
+echo "🔍 Verificare DNS pentru formular.bizzclub-satumare.app"
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 echo ""
 
 # Check if domain resolves
-if host formular.bizzclub-satumare.ro > /dev/null 2>&1; then
+if host formular.bizzclub-satumare.app > /dev/null 2>&1; then
     echo "✅ DNS propagat cu succes!"
     echo ""
     echo "Detalii DNS:"
-    host formular.bizzclub-satumare.ro
+    host formular.bizzclub-satumare.app
     echo ""
     echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
     echo "✅ Next Step: Verifică în Vercel Dashboard"

@@ -2,7 +2,7 @@
 
 ## Custom Domain Configuration
 
-**Target Domain**: `formular.bizzclub-satumare.ro`
+**Target Domain**: `formular.bizzclub-satumare.app`
 
 ### Step 1: Connect GitHub Repository to Vercel
 
@@ -41,7 +41,7 @@ După ce deployment-ul inițial s-a terminat (chiar dacă a eșuat):
    - Click "Add Domain"
 
 3. **Add Custom Domain**:
-   - Introdu: `formular.bizzclub-satumare.ro`
+   - Introdu: `formular.bizzclub-satumare.app`
    - Click "Add"
 
 4. **Verifică DNS Settings**:
@@ -63,7 +63,7 @@ După ce deployment-ul inițial s-a terminat (chiar dacă a eșuat):
 
 ### Step 3: Configure DNS (la Furnizorul de Domeniu)
 
-Mergi la furnizorul de domeniu `bizzclub-satumare.ro` și adaugă:
+Mergi la furnizorul de domeniu `bizzclub-satumare.app` și adaugă:
 
 1. **Dacă folosești CNAME** (recomandat):
    ```
@@ -92,10 +92,10 @@ Mergi la furnizorul de domeniu `bizzclub-satumare.ro` și adaugă:
 2. **Test Manual**:
    ```bash
    # Test DNS propagare
-   nslookup formular.bizzclub-satumare.ro
+   nslookup formular.bizzclub-satumare.app
 
    # SAU
-   dig formular.bizzclub-satumare.ro
+   dig formular.bizzclub-satumare.app
    ```
 
 3. **HTTPS Automatic**:
@@ -159,7 +159,7 @@ Odată configurat totul:
    git merge feature/new-feature
    git push origin main
    ```
-   → Deployment automat pe `formular.bizzclub-satumare.ro`
+   → Deployment automat pe `formular.bizzclub-satumare.app`
 
 ## Troubleshooting
 
@@ -167,7 +167,7 @@ Odată configurat totul:
 
 1. Verifică DNS:
    ```bash
-   dig formular.bizzclub-satumare.ro
+   dig formular.bizzclub-satumare.app
    ```
 
 2. Așteaptă propagarea (până la 48h, de obicei 30 min)
@@ -191,7 +191,7 @@ Odată configurat totul:
 - **Vercel Dashboard**: <https://vercel.com/dashboard>
 - **Project Settings**: `https://vercel.com/[your-project]/settings`
 - **GitHub Repo**: <https://github.com/ciprix-yp/workshop-registration-migration>
-- **Production URL** (după config): <https://formular.bizzclub-satumare.ro>
+- **Production URL** (după config): <https://formular.bizzclub-satumare.app>
 
 ---
 

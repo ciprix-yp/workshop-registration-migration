@@ -39,7 +39,7 @@
   - Pushed code to GitHub (main branch)
 - [x] Vercel Setup
   - Connected GitHub repo to Vercel (via UI)
-  - Added custom domain: `formular.bizzclub-satumare.ro`
+  - Added custom domain: `formular.bizzclub-satumare.app`
   - Configured DNS: CNAME to Vercel
   - ⏳ **Waiting**: DNS propagation (5min-48h, usually 30min)
 
@@ -232,14 +232,14 @@
 
 ### Deployment Configuration
 
-**Custom Domain**: `formular.bizzclub-satumare.ro`
+**Custom Domain**: `formular.bizzclub-satumare.app`
 - Domain needs to be configured in Vercel after initial deployment
 - DNS records will need to be updated (CNAME or A record)
 
 ### Open Questions
 
 - [ ] Does client prefer keeping Google Sheets or migrating to database?
-- [x] Custom domain: `formular.bizzclub-satumare.ro` ✅
+- [x] Custom domain: `formular.bizzclub-satumare.app` ✅
 - [ ] Should we add email notifications on registration?
 - [ ] Analytics/monitoring requirements?
 

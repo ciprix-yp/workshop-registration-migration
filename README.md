@@ -20,7 +20,7 @@ Migrarea aplicației de înscriere la workshop de la Google Apps Script la Next.
 
 - **[VERCEL-SETUP.md](VERCEL-SETUP.md)** - Ghid setup Vercel & Custom Domain
   - Conectare GitHub la Vercel
-  - Configurare custom domain: `formular.bizzclub-satumare.ro`
+  - Configurare custom domain: `formular.bizzclub-satumare.app`
   - Setup DNS (CNAME sau A Record)
   - Environment variables pentru producție
   - Deployment workflow & troubleshooting
