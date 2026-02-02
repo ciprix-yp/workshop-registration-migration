@@ -3,7 +3,7 @@
 **Project**: Workshop Registration Form - Google Apps Script → Vercel
 **Started**: 2026-02-02
 **Last Updated**: 2026-02-02
-**Status**: 🟡 Planning & Documentation Phase
+**Status**: 🟢 Phase 1-3 Complete - Ready for Testing
 
 ---
 
@@ -41,11 +41,66 @@
   - Connected GitHub repo to Vercel (via UI)
   - Added custom domain: `formular.bizzclub-satumare.app`
   - Configured DNS: CNAME to Vercel
-  - ⏳ **Waiting**: DNS propagation (5min-48h, usually 30min)
+  - ✅ DNS propagated successfully
+
+### Phase 1: Core Infrastructure (2026-02-02) ✅
+- [x] Initialized Next.js 16 project with TypeScript
+  - App Router ✓
+  - Tailwind CSS ✓
+  - ESLint ✓
+  - src/ directory structure ✓
+- [x] Set up multi-workshop scalable architecture
+  - `/config/workshops.ts` - Central workshop configuration
+  - `/types/workshop.ts` - TypeScript interfaces
+  - Dynamic routes: `/[workshopSlug]/registration`
+- [x] Configured environment variables
+  - Created `.env.example` template
+  - Created `.env.local` with workshop config
+  - Created `GOOGLE-SETUP.md` guide
+- [x] Installed dependencies:
+  - `googleapis` (Google Sheets API)
+  - `react-hook-form` + `zod` (form validation)
+  - `@hookform/resolvers` (Zod integration)
+
+### Phase 2: Member Validation & Backend (2026-02-02) ✅
+- [x] Created Google Sheets API client (`/lib/sheets/client.ts`)
+  - `getSheetsClient()` - Authenticated client
+  - `getWorkshopConfig()` - Read config from sheet
+  - `getMembers()` - Read members list
+  - `appendRegistration()` - Write registration data
+- [x] Ported member validation logic (`/lib/validation/memberValidator.ts`)
+  - Name normalization (both "FirstLast" and "LastFirst")
+  - Phone normalization (substring matching for country codes)
+  - Email normalization
+  - 3-way matching: name+phone, name+email, email+phone, email fallback
+  - `validateMember()` - Full validation
+  - `checkMemberByEmail()` - Quick check for Step 1
+- [x] Created webhook client (`/lib/webhook/client.ts`)
+  - Basic Auth support
+  - Non-blocking webhook calls
+  - Error handling
+- [x] Built API routes:
+  - `/api/check-member` - Member validation for Step 1
+  - `/api/submit-registration` - Full registration processing
+  - `/api/workshop/[slug]` - Workshop config endpoint
+
+### Phase 3: Registration Form UI (2026-02-02) ✅
+- [x] Created dynamic registration page (`/[workshopSlug]/registration/page.tsx`)
+  - 3-step form with progress indicator
+  - Step 1: Email + member check
+  - Step 2: Personal details (prenume, nume, telefon, provocare, rezultat, nivel)
+  - Step 3: Invoice type (PJ/PF) + payment
+- [x] Implemented form validation with Zod
+- [x] Added Romanian language UI throughout
+- [x] Conditional PJ/PF invoice fields
+- [x] GDPR and marketing consent checkboxes
+- [x] Loading states and error handling
+- [x] Responsive design with Tailwind CSS
+- [x] Auto-redirect to Stripe payment on success
 
 ---
 
-## 🚧 Current Phase: Planning
+## 🚧 Current Phase: Testing & Deployment
 
 ### Decisions Needed
 
@@ -80,24 +135,55 @@
 
 ## 📋 Remaining Tasks
 
-### Phase 1: Core Infrastructure (Not Started)
-- [ ] Initialize Next.js 14+ project with TypeScript
-  - Command: `npm create next-app@latest`
-  - Options: TypeScript ✓, ESLint ✓, Tailwind CSS ✓, App Router ✓
-- [ ] Set up project structure (see CLAUDE.md)
-- [ ] Configure environment variables
-- [ ] Set up Google Sheets API OR database connection
-- [ ] Install dependencies:
-  - `googleapis` (if keeping Sheets)
-  - `react-hook-form` + `zod` (form validation)
-  - `axios` (HTTP client for webhooks)
+### Phase 4: Testing (Next)
+- [ ] **Setup Google Service Account** (CRITICAL - see GOOGLE-SETUP.md)
+  - Create Google Cloud Project
+  - Enable Google Sheets API
+  - Create Service Account and download JSON key
+  - Update `.env.local` with credentials
+  - Share Google Sheet with service account email
+- [ ] Test member validation
+  - Known member email → should show "Bun venit înapoi!"
+  - Unknown email → should show "Bun venit!"
+  - Test Romanian characters in names
+- [ ] Test complete registration flow
+  - Step 1 → Step 2 → Step 3
+  - Test PF invoice (auto-fills name and CUI "0000000000000")
+  - Test PJ invoice (requires company name and CUI)
+  - Verify data written to Google Sheets
+- [ ] Test webhook integration
+  - Check n8n receives payload
+  - Verify registration succeeds even if webhook fails
+- [ ] Test Stripe redirect
+  - Member → redirects to member link
+  - Non-member → redirects to standard link
 
-### Phase 2: Member Validation (Not Started)
-- [ ] Create `/lib/member-validator.ts`
-- [ ] Port exact validation logic from code.gs:
-  - Name normalization (lowercase, no spaces, both orders)
-  - Phone normalization (digits only, substring matching)
-  - Email normalization (lowercase, trim)
+### Phase 5: Deployment & Production (Future)
+- [ ] Configure environment variables in Vercel
+  - Add Google Service Account credentials
+  - Add all workshop config variables
+  - Set for Production, Preview, and Development
+- [ ] Deploy to Vercel
+  - Push to GitHub (auto-deploys)
+  - Verify deployment succeeds
+  - Test on production URL
+- [ ] Verify custom domain works
+  - Test `formular.bizzclub-satumare.app`
+  - Check SSL certificate
+- [ ] Add error monitoring (optional)
+  - Sentry or similar
+- [ ] Add analytics (optional)
+  - Vercel Analytics
+  - Google Analytics
+
+### Future Enhancements (Post-Launch)
+- [ ] Admin dashboard for viewing registrations
+- [ ] Export registrations to CSV/Excel
+- [ ] Email confirmations after registration
+- [ ] Add more workshops (just add to `config/workshops.ts`)
+- [ ] Migrate to Supabase/PostgreSQL (when needed for scale)
+- [ ] Payment confirmation webhook handler
+- [ ] Duplicate submission prevention
   - 3-way matching logic
 - [ ] Write unit tests with known data from Members sheet
 - [ ] Create API endpoint `/api/check-member`
