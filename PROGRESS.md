@@ -37,7 +37,11 @@
   - Created initial commit (136 files, 14736+ insertions)
   - Created GitHub repository: `ciprix-yp/workshop-registration-migration`
   - Pushed code to GitHub (main branch)
-  - **Action Required**: Connect GitHub repo to Vercel via UI
+- [x] Vercel Setup
+  - Connected GitHub repo to Vercel (via UI)
+  - Added custom domain: `formular.bizzclub-satumare.ro`
+  - Configured DNS: CNAME to Vercel
+  - ⏳ **Waiting**: DNS propagation (5min-48h, usually 30min)
 
 ---
 
