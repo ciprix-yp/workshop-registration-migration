@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, FormEvent } from 'react';
+import { useState, FormEvent, useEffect } from 'react';
 import { useParams } from 'next/navigation';
 
 /**
@@ -15,6 +15,13 @@ import { useParams } from 'next/navigation';
 export default function RegistrationPage() {
   const params = useParams();
   const workshopSlug = params.workshopSlug as string;
+
+  // Prevent FOUC (Flash of Unstyled Content)
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   // Form state
   const [step, setStep] = useState(1);
@@ -162,6 +169,11 @@ export default function RegistrationPage() {
       setLoading(false);
     }
   };
+
+  // Prevent FOUC - don't render until client-side hydration is complete
+  if (!mounted) {
+    return null;
+  }
 
   return (
     <>
