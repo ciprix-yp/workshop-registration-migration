@@ -1,9 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getMembers, appendRegistration } from '@/lib/sheets/client';
+import { getMembers, appendRegistration, getWorkshopConfig as getWorkshopConfigFromSheet } from '@/lib/sheets/client';
 import { validateMember } from '@/lib/validation/memberValidator';
 import { sendWebhook, buildWebhookPayload } from '@/lib/webhook/client';
 import { getWorkshopConfig } from '@/config/workshops';
 import { RegistrationFormData, RegistrationRow } from '@/types/workshop';
+import { formatRomanianTimestamp } from '@/lib/utils/dateFormat';
 
 /**
  * POST /api/submit-registration
@@ -40,14 +41,17 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Get workshop configuration from Google Sheet FIRST
+    const sheetConfig = await getWorkshopConfigFromSheet(config.googleSheetId);
+    const workshopName = sheetConfig.WORKSHOP_NAME || config.name; // Fallback to hardcoded if not in sheet
+
     // Get members and validate
     const members = await getMembers(config.googleSheetId);
     const memberValidation = validateMember(
       {
         email: formData.email,
-        prenume: formData.prenume,
-        nume: formData.nume,
-        telefon: formData.telefon,
+        name: formData.name,
+        phone: formData.phone,
       },
       members
     );
@@ -55,30 +59,35 @@ export async function POST(request: NextRequest) {
     // Determine member status and payment link
     const isMember = memberValidation.isMember;
     const statusMembru = isMember ? 'Membru' : 'Non-Membru';
-    const paymentLink = isMember ? config.stripeLinks.member : config.stripeLinks.standard;
+    // Read payment links from Google Sheet first, fallback to hardcoded config
+    const paymentLink = isMember
+      ? (sheetConfig.LINK_PLATA_MEMBRU || config.stripeLinks.member)
+      : (sheetConfig.LINK_PLATA_STANDARD || config.stripeLinks.standard);
     const suma = isMember ? 'Pret Membru' : 'Pret Standard';
 
+    console.log(`[Submit Registration] Member: ${isMember}, Payment link: ${paymentLink}`);
+
     // Handle PF invoice defaults
-    let companieFirma = formData.companieFirma || '';
+    let companyName = formData.companyName || '';
     let cui = formData.cui || '';
 
     if (formData.invoiceType === 'PF') {
-      companieFirma = `${formData.prenume} ${formData.nume}`;
+      companyName = formData.name; // Use full name for PF
       cui = '0000000000000'; // 13 zeros for PF
     }
 
     // Prepare Google Sheets row
     const registrationRow: RegistrationRow = {
-      Timestamp: new Date().toISOString(),
-      Workshop: config.name,
-      Nume: `${formData.prenume} ${formData.nume}`,
+      Timestamp: formatRomanianTimestamp(),
+      Workshop: workshopName,
+      Nume: formData.name,  // Full name from single field
       Email: formData.email,
-      Telefon: formData.telefon,
-      Provocare: formData.provocare,
-      Rezultat: formData.rezultat,
-      Nivel: formData.nivel,
+      Telefon: formData.phone,
+      Provocare: formData.challenge,
+      Rezultat: formData.result,
+      Nivel: formData.level,
       Factura: formData.invoiceType,
-      'Nume Firma': companieFirma,
+      'Nume Firma': companyName,
       CUI: cui,
       GDPR: formData.gdprConsent ? 'Da' : 'Nu',
       Marketing: formData.marketingConsent ? 'Da' : 'Nu',
@@ -92,7 +101,7 @@ export async function POST(request: NextRequest) {
     // Send webhook (non-blocking - don't wait for result)
     const webhookPayload = buildWebhookPayload(
       config.name,
-      { ...formData, companieFirma, cui },
+      { ...formData, companyName, cui },
       statusMembru,
       suma
     );

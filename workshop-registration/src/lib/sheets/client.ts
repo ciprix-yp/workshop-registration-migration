@@ -61,36 +61,55 @@ export async function getWorkshopConfig(sheetId: string): Promise<Record<string,
 
 /**
  * Get members from "Membri" sheet
+ *
+ * IMPORTANT: Returns empty array if sheet not found (all users are non-members)
+ * This matches original code.gs behavior
  */
 export async function getMembers(sheetId: string): Promise<Member[]> {
   const sheets = await getSheetsClient();
 
   // Try to find members sheet (flexible naming)
-  const memberSheetNames = ['Membri', 'Membrii', 'Members'];
+  // Added "Raport Membrii" and "Raport Membri" for Romanian member reports
+  const memberSheetNames = ['Raport Membrii', 'Raport Membri', 'Membri', 'Membrii', 'Members'];
+
+  console.log(`[getMembers] Searching for members sheet in: ${memberSheetNames.join(', ')}`);
 
   for (const sheetName of memberSheetNames) {
     try {
       const response = await sheets.spreadsheets.values.get({
         spreadsheetId: sheetId,
-        range: `${sheetName}!A2:E`, // Skip header row
+        range: `${sheetName}!A2:G`, // Read all columns including Funcție and Grupă
       });
 
       const rows = response.data.values || [];
 
-      return rows.map(([prenume, nume, companie, email, telefon]) => ({
-        prenume: prenume || '',
-        nume: nume || '',
-        companie: companie || '',
-        email: email || '',
-        telefon: telefon || '',
+      console.log(`[getMembers] Found sheet "${sheetName}" with ${rows.length} members`);
+
+      if (rows.length > 0) {
+        console.log(`[getMembers] Sample member (first 5 columns):`, rows[0].slice(0, 5));
+      }
+
+      // Map only the first 5 columns we need: Prenume, Nume, Companie, Email, Telefon
+      // Ignore Funcție (column F) and Grupă (column G)
+      return rows.map((row) => ({
+        prenume: (row[0] || '').trim(),
+        nume: (row[1] || '').trim(),
+        companie: (row[2] || '').trim(),
+        email: (row[3] || '').trim(),
+        telefon: (row[4] || '').trim(),
       }));
     } catch (error) {
+      console.log(`[getMembers] Sheet "${sheetName}" not found, trying next...`);
       // Try next sheet name
       continue;
     }
   }
 
-  throw new Error('Members sheet not found');
+  // If Members sheet not found, return empty array
+  // This means all users will be treated as non-members
+  console.log('[getMembers] No members sheet found with names: ' + memberSheetNames.join(', '));
+  console.log('[getMembers] Treating all users as non-members');
+  return [];
 }
 
 /**

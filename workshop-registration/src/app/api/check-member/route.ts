@@ -1,23 +1,39 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getMembers } from '@/lib/sheets/client';
-import { checkMemberByEmail } from '@/lib/validation/memberValidator';
+import { getMembers, getWorkshopConfig as getWorkshopConfigFromSheet } from '@/lib/sheets/client';
+import { validateMember } from '@/lib/validation/memberValidator';
 import { getWorkshopConfig } from '@/config/workshops';
 
 /**
  * POST /api/check-member
  *
- * Check if email belongs to a member
+ * Check if user is a member using 3-way validation (name+phone, name+email, email+phone)
  * Used in Step 1 of registration form
+ *
+ * EXACT replica of original code.gs checkMemberStatus function
  */
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { email, workshopSlug } = body;
+    const { name, email, phone, workshopSlug } = body;
 
     // Validation
+    if (!name || typeof name !== 'string') {
+      return NextResponse.json(
+        { error: 'Numele este necesar' },
+        { status: 400 }
+      );
+    }
+
     if (!email || typeof email !== 'string') {
       return NextResponse.json(
         { error: 'Email este necesar' },
+        { status: 400 }
+      );
+    }
+
+    if (!phone || typeof phone !== 'string') {
+      return NextResponse.json(
+        { error: 'Telefonul este necesar' },
         { status: 400 }
       );
     }
@@ -41,11 +57,32 @@ export async function POST(request: NextRequest) {
     // Get members from Google Sheet
     const members = await getMembers(config.googleSheetId);
 
-    // Check if email matches a member
-    const result = checkMemberByEmail(email, members);
+    console.log(`[Member Check] Found ${members.length} members in sheet`);
+    console.log(`[Member Check] User input - Name: "${name}", Email: "${email}", Phone: "${phone}"`);
+
+    // 3-way validation: name+phone, name+email, email+phone, email fallback
+    const result = validateMember(
+      { name, email, phone },
+      members
+    );
+
+    console.log(`[Member Check] Validation result - isMember: ${result.isMember}, matchedBy: ${result.matchedBy || 'none'}`);
+
+    // Get workshop configuration from Google Sheet (for payment links)
+    const sheetConfig = await getWorkshopConfigFromSheet(config.googleSheetId);
+
+    // Determine payment link based on member status
+    // Read from Google Sheet first, fallback to hardcoded config if not found
+    const paymentLink = result.isMember
+      ? (sheetConfig.LINK_PLATA_MEMBRU || config.stripeLinks.member)
+      : (sheetConfig.LINK_PLATA_STANDARD || config.stripeLinks.standard);
+
+    console.log(`[Member Check] Payment link selected: ${paymentLink} (Member: ${result.isMember})`);
 
     return NextResponse.json({
       isMember: result.isMember,
+      paymentLink,
+      matchedBy: result.matchedBy,
       message: result.isMember
         ? 'Bun venit înapoi! Ești membru BIZZ.CLUB.'
         : 'Bun venit! Continuă cu înregistrarea.',

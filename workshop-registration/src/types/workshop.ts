@@ -26,6 +26,13 @@ export interface Member {
   telefon: string;
 }
 
+// Parsed user data for validation
+export interface UserData {
+  email: string;
+  name: string;  // Full name from single field
+  phone: string;
+}
+
 // Member validation result
 export interface MemberValidationResult {
   isMember: boolean;
@@ -36,23 +43,22 @@ export interface MemberValidationResult {
 // Invoice types
 export type InvoiceType = 'PJ' | 'PF';
 
-// Registration form data
+// Registration form data (EXACT field names from original)
 export interface RegistrationFormData {
   // Step 1
   email: string;
 
   // Step 2
-  prenume: string;
-  nume: string;
-  telefon: string;
-  provocare: string;
-  rezultat: string;
-  nivel: string;
+  name: string;        // Single field "Nume Prenume"
+  phone: string;
+  challenge: string;
+  result: string;
+  level: string;
 
   // Step 3
   invoiceType: InvoiceType;
-  companieFirma?: string;  // Required for PJ, auto-filled for PF
-  cui?: string;             // Required for PJ, auto "0000000000000" for PF
+  companyName?: string;  // Required for PJ, auto-filled for PF
+  cui?: string;          // Required for PJ, auto "0000000000000" for PF
   gdprConsent: boolean;
   marketingConsent: boolean;
 }
@@ -65,11 +71,11 @@ export interface RegistrationSubmission extends RegistrationFormData {
   suma: string;
 }
 
-// Google Sheets row structure for "Inscrieri" tab
+// Google Sheets row structure for "Inscrieri" tab (Romanian column names)
 export interface RegistrationRow {
   Timestamp: string;
   Workshop: string;
-  Nume: string;
+  Nume: string;              // Full name from form
   Email: string;
   Telefon: string;
   Provocare: string;

@@ -1,4 +1,4 @@
-import { Member, MemberValidationResult } from '@/types/workshop';
+import { Member, MemberValidationResult, UserData } from '@/types/workshop';
 
 /**
  * Member Validation - 3-Way Matching Algorithm
@@ -11,6 +11,48 @@ import { Member, MemberValidationResult } from '@/types/workshop';
  * 3. Email + Phone match
  * 4. Email exact match (fallback)
  */
+
+/**
+ * Parse full name from single field into possible first/last name combinations
+ * Handles names like "Ion Popescu" or "Popescu Ion"
+ */
+function parseFullName(fullName: string): Array<{ first: string; last: string }> {
+  const parts = fullName.trim().split(/\s+/);
+
+  if (parts.length === 0) return [];
+  if (parts.length === 1) {
+    // Single name - try as both first and last
+    return [
+      { first: parts[0], last: '' },
+      { first: '', last: parts[0] },
+    ];
+  }
+
+  // For multiple parts, try common combinations
+  const combinations: Array<{ first: string; last: string }> = [];
+
+  // First word as first name, rest as last name (Ion Popescu)
+  combinations.push({
+    first: parts[0],
+    last: parts.slice(1).join(' '),
+  });
+
+  // Last word as last name, rest as first name (Ion Mihai Popescu)
+  combinations.push({
+    first: parts.slice(0, -1).join(' '),
+    last: parts[parts.length - 1],
+  });
+
+  // If two parts, also try reversed (Popescu Ion)
+  if (parts.length === 2) {
+    combinations.push({
+      first: parts[1],
+      last: parts[0],
+    });
+  }
+
+  return combinations;
+}
 
 /**
  * Normalize name for comparison
@@ -60,20 +102,26 @@ function normalizeEmail(email: string): string {
 
 /**
  * Check if user name matches member name
+ * Handles full name from single field
  */
 function nameMatches(
-  userFirstName: string,
-  userLastName: string,
+  userFullName: string,
   member: Member
 ): boolean {
-  const userVariants = normalizeName(userFirstName, userLastName);
+  // Parse user's full name into possible combinations
+  const userNameCombinations = parseFullName(userFullName);
   const memberVariants = normalizeName(member.prenume, member.nume);
 
-  // Check all combinations
-  for (const userVariant of userVariants) {
-    for (const memberVariant of memberVariants) {
-      if (userVariant === memberVariant) {
-        return true;
+  // Try each user name combination
+  for (const nameCombination of userNameCombinations) {
+    const userVariants = normalizeName(nameCombination.first, nameCombination.last);
+
+    // Check all combinations
+    for (const userVariant of userVariants) {
+      for (const memberVariant of memberVariants) {
+        if (userVariant === memberVariant) {
+          return true;
+        }
       }
     }
   }
@@ -89,23 +137,18 @@ function nameMatches(
  * @returns Validation result with match type
  */
 export function validateMember(
-  userData: {
-    email: string;
-    prenume: string;
-    nume: string;
-    telefon: string;
-  },
+  userData: UserData,
   members: Member[]
 ): MemberValidationResult {
   const userEmail = normalizeEmail(userData.email);
-  const userPhone = normalizePhone(userData.telefon);
+  const userPhone = normalizePhone(userData.phone);
 
   for (const member of members) {
     const memberEmail = normalizeEmail(member.email);
     const memberPhone = normalizePhone(member.telefon);
 
     // Priority 1: Name + Phone match
-    if (nameMatches(userData.prenume, userData.nume, member) &&
+    if (nameMatches(userData.name, member) &&
         phonesMatch(userPhone, memberPhone)) {
       return {
         isMember: true,
@@ -115,7 +158,7 @@ export function validateMember(
     }
 
     // Priority 2: Name + Email match
-    if (nameMatches(userData.prenume, userData.nume, member) &&
+    if (nameMatches(userData.name, member) &&
         userEmail === memberEmail) {
       return {
         isMember: true,

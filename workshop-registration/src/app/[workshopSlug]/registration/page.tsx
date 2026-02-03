@@ -1,72 +1,60 @@
 'use client';
 
-import { useState } from 'react';
-import { useForm } from 'react-hook-form';
-import { zodResolver } from '@hookform/resolvers/zod';
-import { z } from 'zod';
-import { RegistrationFormData } from '@/types/workshop';
+import { useState, FormEvent } from 'react';
+import { useParams } from 'next/navigation';
 
 /**
- * Workshop Registration Page
- * Dynamic route: /[workshopSlug]/registration
+ * Workshop Registration Page - EXACT REPLICA of original Google Apps Script form
  *
  * 3-Step Registration Flow:
- * Step 1: Email + Member Check
- * Step 2: Personal Details
- * Step 3: Payment + Invoice
+ * Step 1: Hai să ne cunoaștem (name + email + phone)
+ * Step 2: Setarea obiectivelor (challenge, result, level slider)
+ * Step 3: Detalii Finale (invoice checkbox, GDPR, payment)
  */
 
-// Zod validation schema
-const registrationSchema = z.object({
-  // Step 1
-  email: z.string().email('Email invalid'),
+export default function RegistrationPage() {
+  const params = useParams();
+  const workshopSlug = params.workshopSlug as string;
 
-  // Step 2
-  prenume: z.string().min(2, 'Prenume este necesar'),
-  nume: z.string().min(2, 'Nume este necesar'),
-  telefon: z.string().min(10, 'Telefon invalid'),
-  provocare: z.string().min(10, 'Descrie provocarea (minim 10 caractere)'),
-  rezultat: z.string().min(10, 'Descrie rezultatul dorit (minim 10 caractere)'),
-  nivel: z.string().min(1, 'Selectează nivelul'),
-
-  // Step 3
-  invoiceType: z.enum(['PJ', 'PF']),
-  companieFirma: z.string().optional(),
-  cui: z.string().optional(),
-  gdprConsent: z.boolean().refine(val => val === true, 'Consimțământul GDPR este obligatoriu'),
-  marketingConsent: z.boolean(),
-});
-
-export default function RegistrationPage({
-  params,
-}: {
-  params: { workshopSlug: string };
-}) {
+  // Form state
   const [step, setStep] = useState(1);
-  const [isMember, setIsMember] = useState<boolean | null>(null);
   const [loading, setLoading] = useState(false);
+  const [loadingText, setLoadingText] = useState('Se procesează...');
+  const [loadingSubtext, setLoadingSubtext] = useState('');
   const [error, setError] = useState('');
 
-  const {
-    register,
-    handleSubmit,
-    watch,
-    formState: { errors },
-  } = useForm<RegistrationFormData>({
-    resolver: zodResolver(registrationSchema),
-    defaultValues: {
-      invoiceType: 'PF',
-      gdprConsent: false,
-      marketingConsent: false,
-    },
-  });
+  // Step 1 - Identification
+  const [name, setName] = useState('');
+  const [email, setEmail] = useState('');
+  const [phone, setPhone] = useState('');
 
-  const watchEmail = watch('email');
-  const watchInvoiceType = watch('invoiceType');
+  // Step 2 - Objectives
+  const [challenge, setChallenge] = useState('');
+  const [result, setResult] = useState('');
+  const [level, setLevel] = useState('5');
 
-  // Step 1: Check member status
-  const handleCheckEmail = async () => {
+  // Step 3 - Final Details
+  const [invoiceNeeded, setInvoiceNeeded] = useState(false);
+  const [companyName, setCompanyName] = useState('');
+  const [cui, setCui] = useState('');
+  const [gdprConsent, setGdprConsent] = useState(false);
+  const [marketingConsent, setMarketingConsent] = useState(false);
+
+  // Payment link stored from Step 1
+  const [paymentLink, setPaymentLink] = useState('');
+
+  // STEP 1: Check member status with name + email + phone
+  const handleIdentifyStep = async (e: FormEvent) => {
+    e.preventDefault();
+
+    if (!name || !email || !phone) {
+      setError('Toate câmpurile sunt obligatorii');
+      return;
+    }
+
     setLoading(true);
+    setLoadingText('Verificare date...');
+    setLoadingSubtext('Se verifică statusul de membru.');
     setError('');
 
     try {
@@ -74,8 +62,10 @@ export default function RegistrationPage({
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          email: watchEmail,
-          workshopSlug: params.workshopSlug,
+          workshopSlug,
+          name,
+          email,
+          phone,
         }),
       });
 
@@ -86,7 +76,8 @@ export default function RegistrationPage({
         return;
       }
 
-      setIsMember(data.isMember);
+      // Store payment link for later
+      setPaymentLink(data.paymentLink);
       setStep(2);
     } catch (err) {
       setError('Eroare de conexiune. Încearcă din nou.');
@@ -95,340 +86,889 @@ export default function RegistrationPage({
     }
   };
 
-  // Step 3: Submit registration
-  const onSubmit = async (data: RegistrationFormData) => {
+  // STEP 2 → STEP 3
+  const handleObjectivesStep = (e: FormEvent) => {
+    e.preventDefault();
+
+    if (!challenge || !result || !level) {
+      setError('Toate câmpurile sunt obligatorii');
+      return;
+    }
+
+    setError('');
+    setStep(3);
+  };
+
+  // STEP 3: Submit registration
+  const handleFinalSubmit = async (e: FormEvent) => {
+    e.preventDefault();
+
+    if (!gdprConsent) {
+      setError('Consimțământul GDPR este obligatoriu');
+      return;
+    }
+
+    if (invoiceNeeded && (!companyName || !cui)) {
+      setError('Pentru factura PJ, numele firmei și CUI sunt obligatorii');
+      return;
+    }
+
     setLoading(true);
+    setLoadingText('Se procesează înregistrarea...');
+    setLoadingSubtext('Vă rugăm să așteptați.');
     setError('');
 
     try {
+      const registrationData = {
+        workshopSlug,
+        email,
+        name,
+        phone,
+        challenge,
+        result,
+        level,
+        invoiceType: invoiceNeeded ? 'PJ' : 'PF',
+        companyName: invoiceNeeded ? companyName : name,
+        cui: invoiceNeeded ? cui : '0000000000000',
+        gdprConsent,
+        marketingConsent,
+      };
+
       const response = await fetch('/api/submit-registration', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          workshopSlug: params.workshopSlug,
-          formData: data,
+          workshopSlug,
+          formData: registrationData,
         }),
       });
 
-      const result = await response.json();
+      const resultData = await response.json();
 
       if (!response.ok) {
-        setError(result.error || 'Eroare la înregistrare');
+        setError(resultData.error || 'Eroare la înregistrare');
         return;
       }
 
-      // Redirect to payment
-      window.location.href = result.paymentLink;
+      // Redirect to payment using link from response
+      setLoadingText('Redirecționare către plată...');
+      setLoadingSubtext('Veți fi redirecționat în câteva secunde.');
+
+      setTimeout(() => {
+        window.location.href = resultData.paymentLink;
+      }, 1500);
     } catch (err) {
       setError('Eroare de conexiune. Încearcă din nou.');
-    } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 py-12 px-4">
-      <div className="max-w-2xl mx-auto bg-white rounded-lg shadow-xl p-8">
-        <h1 className="text-3xl font-bold text-gray-900 mb-2">
-          Înregistrare Workshop
-        </h1>
-        <p className="text-gray-600 mb-8">
-          Completează formularul pentru a participa la workshop
-        </p>
+    <>
+      <style jsx global>{`
+        :root {
+          --primary-color: #009B9E;
+          --primary-hover: #007f82;
+          --secondary-color: #263645;
+          --accent-color: #E74C3C;
+          --bg-color: #F5F7FA;
+          --card-bg: #FFFFFF;
+          --text-color: #263645;
+          --border-radius: 12px;
+        }
 
-        {/* Progress indicator */}
-        <div className="flex items-center justify-between mb-8">
-          {[1, 2, 3].map(s => (
-            <div key={s} className="flex items-center">
-              <div
-                className={`w-10 h-10 rounded-full flex items-center justify-center ${
-                  step >= s
-                    ? 'bg-blue-600 text-white'
-                    : 'bg-gray-200 text-gray-600'
-                }`}
-              >
-                {s}
-              </div>
-              {s < 3 && (
-                <div
-                  className={`w-24 h-1 ${
-                    step > s ? 'bg-blue-600' : 'bg-gray-200'
-                  }`}
-                />
-              )}
-            </div>
-          ))}
+        * {
+          box-sizing: border-box;
+          -webkit-tap-highlight-color: transparent;
+        }
+
+        body {
+          font-family: 'Montserrat', sans-serif;
+          background-color: var(--bg-color);
+          color: var(--text-color);
+          margin: 0;
+          padding: 0;
+          line-height: 1.5;
+          font-size: 16px;
+        }
+
+        h1, h2, h3, h4 {
+          margin-top: 0;
+          font-weight: 700;
+          line-height: 1.2;
+        }
+
+        p {
+          margin-bottom: 1rem;
+        }
+
+        .hidden {
+          display: none !important;
+        }
+
+        .container {
+          width: 100%;
+          padding: 20px 16px;
+          margin: 0 auto;
+          min-height: 100vh;
+        }
+
+        .hero {
+          text-align: center;
+          margin-bottom: 30px;
+        }
+
+        .logo-container {
+          margin-bottom: 20px;
+          background-color: #FFFFFF;
+          padding: 24px 20px;
+          border-radius: var(--border-radius);
+          box-shadow: 0 2px 10px rgba(0, 0, 0, 0.03);
+        }
+
+        .logo-container img {
+          width: 220px;
+          height: auto;
+          display: block;
+          margin: 0 auto;
+        }
+
+        .hero h1 {
+          color: var(--text-color);
+          font-size: 1.5rem;
+          margin-bottom: 12px;
+          font-weight: 800;
+        }
+
+        .hero h1 .title-line-1 {
+          display: block;
+          font-size: 1.2rem;
+          font-weight: 600;
+          margin-bottom: 4px;
+        }
+
+        .hero h1 .title-line-2 {
+          display: block;
+          font-size: 1.5rem;
+          font-weight: 800;
+        }
+
+        .hero p {
+          color: var(--text-color);
+          font-size: 1rem;
+          opacity: 0.9;
+          font-weight: 400;
+          padding: 0 10px;
+        }
+
+        .form-card {
+          background-color: var(--card-bg);
+          border-radius: var(--border-radius);
+          box-shadow: 0 2px 10px rgba(0, 0, 0, 0.03);
+          padding: 24px 20px;
+          margin-bottom: 40px;
+        }
+
+        .step-indicator {
+          display: flex;
+          justify-content: center;
+          margin-bottom: 25px;
+        }
+
+        .dot {
+          height: 10px;
+          width: 10px;
+          background-color: #e0e0e0;
+          border-radius: 50%;
+          margin: 0 8px;
+          transition: all 0.3s;
+        }
+
+        .dot.active {
+          background-color: var(--primary-color);
+          transform: scale(1.2);
+        }
+
+        .dot.completed {
+          background-color: var(--primary-color);
+          opacity: 0.5;
+        }
+
+        .step-title {
+          font-size: 1.25rem;
+          color: var(--secondary-color);
+          margin-bottom: 20px;
+          font-weight: 700;
+          text-align: center;
+          border-bottom: 2px solid #f0f0f0;
+          padding-bottom: 15px;
+        }
+
+        .form-group {
+          margin-bottom: 20px;
+        }
+
+        label {
+          display: block;
+          margin-bottom: 8px;
+          font-weight: 600;
+          color: var(--secondary-color);
+          font-size: 0.95rem;
+        }
+
+        input[type="text"],
+        input[type="email"],
+        input[type="tel"],
+        textarea {
+          width: 100%;
+          padding: 14px 16px;
+          border: 1px solid #ced4da;
+          border-radius: 8px;
+          font-family: inherit;
+          font-size: 16px;
+          color: var(--text-color);
+          background-color: #fff;
+        }
+
+        input:focus,
+        textarea:focus {
+          outline: none;
+          border-color: var(--primary-color);
+          box-shadow: 0 0 0 3px rgba(0, 155, 158, 0.15);
+        }
+
+        textarea {
+          min-height: 120px;
+          resize: vertical;
+        }
+
+        input[type="range"] {
+          width: 100%;
+          height: 6px;
+          border-radius: 3px;
+          outline: none;
+          -webkit-appearance: none;
+          appearance: none;
+          background: #e0e0e0;
+        }
+
+        input[type="range"]::-webkit-slider-thumb {
+          -webkit-appearance: none;
+          appearance: none;
+          width: 20px;
+          height: 20px;
+          border-radius: 50%;
+          background: var(--primary-color);
+          cursor: pointer;
+          box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+        }
+
+        input[type="range"]::-moz-range-thumb {
+          width: 20px;
+          height: 20px;
+          border-radius: 50%;
+          background: var(--primary-color);
+          cursor: pointer;
+          border: none;
+          box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+        }
+
+        .range-labels {
+          display: flex;
+          justify-content: space-between;
+          margin-top: 5px;
+          font-size: 12px;
+          color: #666;
+        }
+
+        .level-value {
+          font-size: 20px;
+          font-weight: bold;
+          color: var(--primary-color);
+          text-align: center;
+          margin-top: 10px;
+        }
+
+        .checkbox-group {
+          display: flex;
+          align-items: start;
+          gap: 12px;
+          margin-bottom: 15px;
+          cursor: pointer;
+          padding: 8px 0;
+        }
+
+        .checkbox-group input {
+          margin-top: 3px;
+          width: 20px;
+          height: 20px;
+          accent-color: var(--primary-color);
+          cursor: pointer;
+          flex-shrink: 0;
+        }
+
+        .checkbox-group span {
+          font-size: 0.9rem;
+          line-height: 1.4;
+        }
+
+        .invoice-fields {
+          padding: 20px;
+          background-color: #f9f9f9;
+          border-radius: 8px;
+          border: 1px solid #e0e0e0;
+          margin-bottom: 20px;
+        }
+
+        .btn {
+          display: block;
+          width: 100%;
+          padding: 18px;
+          border: none;
+          border-radius: 10px;
+          font-size: 1.1rem;
+          font-weight: 700;
+          text-transform: uppercase;
+          cursor: pointer;
+          transition: all 0.2s;
+          text-align: center;
+          box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+
+        .btn-primary {
+          background-color: var(--primary-color);
+          color: white;
+        }
+
+        .btn-primary:active {
+          transform: scale(0.98);
+        }
+
+        .btn-primary:disabled {
+          background-color: #95a5a6;
+          cursor: not-allowed;
+          transform: none;
+        }
+
+        .btn-secondary {
+          background-color: transparent;
+          color: #777;
+          margin-top: 15px;
+          text-transform: none;
+          font-weight: 500;
+          padding: 12px;
+          box-shadow: none;
+        }
+
+        .footer {
+          background-color: var(--secondary-color);
+          color: white;
+          padding: 40px 20px;
+          font-size: 0.9rem;
+        }
+
+        .benefits-grid {
+          display: grid;
+          grid-template-columns: 1fr;
+          gap: 25px;
+          margin-bottom: 40px;
+        }
+
+        .benefit-item {
+          display: flex;
+          align-items: flex-start;
+        }
+
+        .benefit-icon {
+          font-size: 1.4rem;
+          color: var(--primary-color);
+          margin-right: 15px;
+          width: 30px;
+          text-align: center;
+          flex-shrink: 0;
+        }
+
+        .benefit-text h4 {
+          font-size: 1.1rem;
+          margin-bottom: 4px;
+          color: #fff;
+        }
+
+        .benefit-text p {
+          font-size: 0.9rem;
+          opacity: 0.8;
+          margin: 0;
+          line-height: 1.4;
+        }
+
+        .copyright {
+          text-align: center;
+          border-top: 1px solid rgba(255, 255, 255, 0.1);
+          padding-top: 25px;
+          margin-top: 30px;
+          font-size: 0.8rem;
+          opacity: 0.7;
+          line-height: 1.6;
+        }
+
+        .copyright a {
+          color: white;
+          text-decoration: none;
+          border-bottom: 1px dashed rgba(255, 255, 255, 0.5);
+        }
+
+        .loading-overlay {
+          position: fixed;
+          inset: 0;
+          background: rgba(255, 255, 255, 0.98);
+          z-index: 9999;
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          justify-content: center;
+          visibility: hidden;
+          opacity: 0;
+          transition: opacity 0.3s;
+          padding: 20px;
+          text-align: center;
+        }
+
+        .loading-overlay.active {
+          visibility: visible;
+          opacity: 1;
+        }
+
+        .spinner {
+          width: 50px;
+          height: 50px;
+          border: 4px solid #f0f0f0;
+          border-top: 4px solid var(--primary-color);
+          border-radius: 50%;
+          animation: spin 0.8s linear infinite;
+          margin-bottom: 20px;
+        }
+
+        @keyframes spin {
+          100% {
+            transform: rotate(360deg);
+          }
+        }
+
+        .error-message {
+          background-color: #fee;
+          border: 1px solid #fcc;
+          color: #c33;
+          padding: 12px 16px;
+          border-radius: 8px;
+          margin-bottom: 20px;
+          font-size: 0.9rem;
+        }
+
+        .payment-button {
+          background-color: var(--primary-color);
+          color: white;
+          padding: 18px;
+          border: none;
+          border-radius: 10px;
+          font-weight: 700;
+          cursor: pointer;
+          width: 100%;
+          box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+          transition: all 0.2s;
+        }
+
+        .payment-button:active {
+          transform: scale(0.98);
+        }
+
+        .payment-button:disabled {
+          background-color: #95a5a6;
+          cursor: not-allowed;
+        }
+
+        .payment-button-text {
+          font-size: 18px;
+          font-weight: bold;
+        }
+
+        .payment-button-subtext {
+          font-size: 12px;
+          font-weight: normal;
+          margin-top: 5px;
+          opacity: 0.9;
+        }
+
+        @media (min-width: 768px) {
+          .container {
+            max-width: 700px;
+            padding: 40px 20px;
+          }
+
+          .hero h1 {
+            font-size: 2rem;
+            margin-bottom: 20px;
+          }
+
+          .hero p {
+            font-size: 1.1rem;
+          }
+
+          .logo-container {
+            padding: 40px;
+          }
+
+          .logo-container img {
+            width: 300px;
+          }
+
+          .form-card {
+            padding: 40px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.05);
+          }
+
+          .benefits-grid {
+            grid-template-columns: repeat(2, 1fr);
+            gap: 40px;
+          }
+        }
+      `}</style>
+
+      {/* Add Montserrat font */}
+      <link rel="preconnect" href="https://fonts.googleapis.com" />
+      <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
+      <link
+        href="https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;500;600;700;800&display=swap"
+        rel="stylesheet"
+      />
+
+      {/* Loading Overlay */}
+      <div className={`loading-overlay ${loading ? 'active' : ''}`}>
+        <div className="spinner"></div>
+        <h3 style={{ color: 'var(--secondary-color)', marginBottom: '10px' }}>
+          {loadingText}
+        </h3>
+        <p style={{ color: '#666', margin: 0 }}>
+          {loadingSubtext}
+        </p>
+      </div>
+
+      <div className="container">
+        <div className="hero">
+          <div className="logo-container">
+            <img
+              src="/logo.png"
+              alt="BIZZ.CLUB Logo"
+            />
+          </div>
+          <h1>
+            <span className="title-line-1">Înscriere Workshop</span>
+            <span className="title-line-2">BIZZ.CLUB Satu Mare</span>
+          </h1>
+          <p>Felicitări pentru decizia de a investi în creșterea ta! ("Growing Together")</p>
         </div>
 
-        {error && (
-          <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded mb-4">
-            {error}
+        <div className="form-card">
+          {/* Step Indicator */}
+          <div className="step-indicator">
+            <span className={`dot ${step >= 1 ? 'active' : ''} ${step > 1 ? 'completed' : ''}`}></span>
+            <span className={`dot ${step >= 2 ? 'active' : ''} ${step > 2 ? 'completed' : ''}`}></span>
+            <span className={`dot ${step >= 3 ? 'active' : ''}`}></span>
           </div>
-        )}
 
-        <form onSubmit={handleSubmit(onSubmit)}>
-          {/* Step 1: Email */}
+          {/* Error Message */}
+          {error && (
+            <div className="error-message">
+              {error}
+            </div>
+          )}
+
+          {/* STEP 1: Hai să ne cunoaștem */}
           {step === 1 && (
-            <div className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Email *
-                </label>
+            <form onSubmit={handleIdentifyStep}>
+              <h2 className="step-title">Hai să ne cunoaștem</h2>
+
+              <div className="form-group">
+                <label htmlFor="name">Nume Prenume *</label>
                 <input
-                  {...register('email')}
-                  type="email"
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  placeholder="email@exemplu.com"
+                  type="text"
+                  id="name"
+                  name="name"
+                  required
+                  placeholder="Ex: Ion Popescu"
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
                 />
-                {errors.email && (
-                  <p className="text-red-500 text-sm mt-1">{errors.email.message}</p>
-                )}
+              </div>
+
+              <div className="form-group">
+                <label htmlFor="email">Email *</label>
+                <input
+                  type="email"
+                  id="email"
+                  name="email"
+                  required
+                  placeholder="Ex: ion@email.com"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                />
+              </div>
+
+              <div className="form-group">
+                <label htmlFor="phone">Telefon *</label>
+                <input
+                  type="tel"
+                  id="phone"
+                  name="phone"
+                  required
+                  placeholder="07xx xxx xxx"
+                  value={phone}
+                  onChange={(e) => setPhone(e.target.value)}
+                />
+              </div>
+
+              <button type="submit" className="btn btn-primary">
+                Mai departe
+              </button>
+            </form>
+          )}
+
+          {/* STEP 2: Setarea obiectivelor */}
+          {step === 2 && (
+            <form onSubmit={handleObjectivesStep}>
+              <h2 className="step-title">Setarea obiectivelor</h2>
+
+              <div className="form-group">
+                <label htmlFor="challenge">Care este provocarea ta? *</label>
+                <textarea
+                  id="challenge"
+                  name="challenge"
+                  required
+                  placeholder="Ce provocare ai în afacere pe care vrei să o rezolvi?"
+                  value={challenge}
+                  onChange={(e) => setChallenge(e.target.value)}
+                />
+              </div>
+
+              <div className="form-group">
+                <label htmlFor="result">Ce rezultat vrei să obții? *</label>
+                <input
+                  type="text"
+                  id="result"
+                  name="result"
+                  required
+                  placeholder="Ce rezultat concret îți dorești?"
+                  value={result}
+                  onChange={(e) => setResult(e.target.value)}
+                />
+              </div>
+
+              <div className="form-group">
+                <label htmlFor="level">Nivel actual (1-10) *</label>
+                <input
+                  type="range"
+                  id="level"
+                  name="level"
+                  min="1"
+                  max="10"
+                  value={level}
+                  onChange={(e) => setLevel(e.target.value)}
+                  style={{
+                    background: `linear-gradient(to right, var(--primary-color) 0%, var(--primary-color) ${(parseInt(level) - 1) * 11.11}%, #e0e0e0 ${(parseInt(level) - 1) * 11.11}%, #e0e0e0 100%)`
+                  }}
+                />
+                <div className="level-value">{level}</div>
+                <div className="range-labels">
+                  <span>1</span>
+                  <span>10</span>
+                </div>
+              </div>
+
+              <button type="submit" className="btn btn-primary">
+                Continuă
+              </button>
+              <button
+                type="button"
+                className="btn btn-secondary"
+                onClick={() => setStep(1)}
+              >
+                Înapoi
+              </button>
+            </form>
+          )}
+
+          {/* STEP 3: Detalii Finale */}
+          {step === 3 && (
+            <form onSubmit={handleFinalSubmit}>
+              <h2 className="step-title">Detalii Finale</h2>
+
+              {/* Invoice checkbox */}
+              <div className="checkbox-group" style={{ marginBottom: '20px', backgroundColor: '#f5f5f5', padding: '15px', borderRadius: '8px' }}>
+                <input
+                  type="checkbox"
+                  id="invoiceNeeded"
+                  name="invoiceNeeded"
+                  checked={invoiceNeeded}
+                  onChange={(e) => setInvoiceNeeded(e.target.checked)}
+                />
+                <label htmlFor="invoiceNeeded" style={{ margin: 0, cursor: 'pointer', fontWeight: 600 }}>
+                  Doresc factură pe persoană juridică (Firmă)
+                </label>
+              </div>
+
+              {/* Invoice fields (conditional) */}
+              {invoiceNeeded && (
+                <div className="invoice-fields">
+                  <div className="form-group">
+                    <label htmlFor="companyName">Nume Companie *</label>
+                    <input
+                      type="text"
+                      id="companyName"
+                      name="companyName"
+                      placeholder="Ex: SC FIRMA SRL"
+                      value={companyName}
+                      onChange={(e) => setCompanyName(e.target.value)}
+                      required={invoiceNeeded}
+                    />
+                  </div>
+
+                  <div className="form-group" style={{ marginBottom: 0 }}>
+                    <label htmlFor="cui">CUI *</label>
+                    <input
+                      type="text"
+                      id="cui"
+                      name="cui"
+                      placeholder="Ex: RO12345678"
+                      value={cui}
+                      onChange={(e) => setCui(e.target.value)}
+                      required={invoiceNeeded}
+                    />
+                  </div>
+                </div>
+              )}
+
+              {/* GDPR consent */}
+              <div className="checkbox-group">
+                <input
+                  type="checkbox"
+                  id="gdprConsent"
+                  name="gdprConsent"
+                  required
+                  checked={gdprConsent}
+                  onChange={(e) => setGdprConsent(e.target.checked)}
+                />
+                <label htmlFor="gdprConsent" style={{ margin: 0, cursor: 'pointer', fontSize: '0.9rem' }}>
+                  Sunt de acord cu prelucrarea datelor personale conform GDPR *
+                </label>
+              </div>
+
+              {/* Marketing consent */}
+              <div className="checkbox-group" style={{ marginBottom: '25px' }}>
+                <input
+                  type="checkbox"
+                  id="marketingConsent"
+                  name="marketingConsent"
+                  checked={marketingConsent}
+                  onChange={(e) => setMarketingConsent(e.target.checked)}
+                />
+                <label htmlFor="marketingConsent" style={{ margin: 0, cursor: 'pointer', fontSize: '0.9rem' }}>
+                  Doresc să primesc comunicări despre evenimente viitoare
+                </label>
               </div>
 
               <button
-                type="button"
-                onClick={handleCheckEmail}
-                disabled={loading || !watchEmail}
-                className="w-full bg-blue-600 text-white py-3 rounded-lg hover:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition"
+                type="submit"
+                disabled={loading || !gdprConsent}
+                className="payment-button"
               >
-                {loading ? 'Verificare...' : 'Continuă'}
+                <div className="payment-button-text">
+                  PLĂTEȘTE ȘI REZERVĂ LOCUL
+                </div>
+                <div className="payment-button-subtext">
+                  Vei fi redirecționat către Stripe
+                </div>
               </button>
-            </div>
+
+              <button
+                type="button"
+                className="btn btn-secondary"
+                onClick={() => setStep(2)}
+              >
+                Înapoi
+              </button>
+            </form>
           )}
+        </div>
 
-          {/* Step 2: Personal Details */}
-          {step === 2 && (
-            <div className="space-y-4">
-              {isMember !== null && (
-                <div
-                  className={`px-4 py-3 rounded-lg ${
-                    isMember ? 'bg-green-50 text-green-800' : 'bg-blue-50 text-blue-800'
-                  }`}
-                >
-                  {isMember
-                    ? '🎉 Bun venit înapoi! Ești membru BIZZ.CLUB.'
-                    : '👋 Bun venit! Continuă cu înregistrarea.'}
-                </div>
-              )}
-
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Prenume *
-                  </label>
-                  <input
-                    {...register('prenume')}
-                    type="text"
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-                  />
-                  {errors.prenume && (
-                    <p className="text-red-500 text-sm mt-1">{errors.prenume.message}</p>
-                  )}
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Nume *
-                  </label>
-                  <input
-                    {...register('nume')}
-                    type="text"
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-                  />
-                  {errors.nume && (
-                    <p className="text-red-500 text-sm mt-1">{errors.nume.message}</p>
-                  )}
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Telefon *
-                </label>
-                <input
-                  {...register('telefon')}
-                  type="tel"
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-                  placeholder="+40 724 123 456"
-                />
-                {errors.telefon && (
-                  <p className="text-red-500 text-sm mt-1">{errors.telefon.message}</p>
-                )}
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Provocare *
-                </label>
-                <textarea
-                  {...register('provocare')}
-                  rows={3}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-                  placeholder="Care este provocarea ta?"
-                />
-                {errors.provocare && (
-                  <p className="text-red-500 text-sm mt-1">{errors.provocare.message}</p>
-                )}
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Rezultat Dorit *
-                </label>
-                <textarea
-                  {...register('rezultat')}
-                  rows={3}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-                  placeholder="Ce rezultat vrei să obții?"
-                />
-                {errors.rezultat && (
-                  <p className="text-red-500 text-sm mt-1">{errors.rezultat.message}</p>
-                )}
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Nivel *
-                </label>
-                <select
-                  {...register('nivel')}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-                >
-                  <option value="">Selectează nivelul</option>
-                  <option value="Începător">Începător</option>
-                  <option value="Intermediar">Intermediar</option>
-                  <option value="Avansat">Avansat</option>
-                </select>
-                {errors.nivel && (
-                  <p className="text-red-500 text-sm mt-1">{errors.nivel.message}</p>
-                )}
-              </div>
-
-              <div className="flex gap-4">
-                <button
-                  type="button"
-                  onClick={() => setStep(1)}
-                  className="flex-1 border border-gray-300 text-gray-700 py-3 rounded-lg hover:bg-gray-50 transition"
-                >
-                  Înapoi
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setStep(3)}
-                  className="flex-1 bg-blue-600 text-white py-3 rounded-lg hover:bg-blue-700 transition"
-                >
-                  Continuă
-                </button>
+        {/* Footer - 6 Benefits */}
+        <div className="footer">
+          <div className="benefits-grid">
+            {/* Benefit 1 */}
+            <div className="benefit-item">
+              <div className="benefit-icon">✓</div>
+              <div className="benefit-text">
+                <h4>Educație de top</h4>
+                <p>Conținut premium de la experți cu experiență reală în business</p>
               </div>
             </div>
-          )}
 
-          {/* Step 3: Payment & Invoice */}
-          {step === 3 && (
-            <div className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Tip Factură *
-                </label>
-                <div className="flex gap-4">
-                  <label className="flex items-center cursor-pointer">
-                    <input
-                      {...register('invoiceType')}
-                      type="radio"
-                      value="PF"
-                      className="mr-2"
-                    />
-                    <span>Persoană Fizică</span>
-                  </label>
-                  <label className="flex items-center cursor-pointer">
-                    <input
-                      {...register('invoiceType')}
-                      type="radio"
-                      value="PJ"
-                      className="mr-2"
-                    />
-                    <span>Persoană Juridică</span>
-                  </label>
-                </div>
-              </div>
-
-              {watchInvoiceType === 'PJ' && (
-                <>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Nume Firmă *
-                    </label>
-                    <input
-                      {...register('companieFirma')}
-                      type="text"
-                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      CUI *
-                    </label>
-                    <input
-                      {...register('cui')}
-                      type="text"
-                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-                      placeholder="RO12345678"
-                    />
-                  </div>
-                </>
-              )}
-
-              <div className="border-t pt-4">
-                <label className="flex items-start cursor-pointer">
-                  <input
-                    {...register('gdprConsent')}
-                    type="checkbox"
-                    className="mt-1 mr-3"
-                  />
-                  <span className="text-sm">
-                    Sunt de acord cu prelucrarea datelor personale conform GDPR *
-                  </span>
-                </label>
-                {errors.gdprConsent && (
-                  <p className="text-red-500 text-sm mt-1">{errors.gdprConsent.message}</p>
-                )}
-              </div>
-
-              <div>
-                <label className="flex items-start cursor-pointer">
-                  <input
-                    {...register('marketingConsent')}
-                    type="checkbox"
-                    className="mt-1 mr-3"
-                  />
-                  <span className="text-sm">
-                    Vreau să primesc informații despre viitoarele evenimente
-                  </span>
-                </label>
-              </div>
-
-              <div className="flex gap-4 pt-4">
-                <button
-                  type="button"
-                  onClick={() => setStep(2)}
-                  disabled={loading}
-                  className="flex-1 border border-gray-300 text-gray-700 py-3 rounded-lg hover:bg-gray-50 transition disabled:opacity-50"
-                >
-                  Înapoi
-                </button>
-                <button
-                  type="submit"
-                  disabled={loading}
-                  className="flex-1 bg-green-600 text-white py-3 rounded-lg hover:bg-green-700 transition disabled:bg-gray-300"
-                >
-                  {loading ? 'Procesare...' : 'Finalizează și Plătește'}
-                </button>
+            {/* Benefit 2 */}
+            <div className="benefit-item">
+              <div className="benefit-icon">✓</div>
+              <div className="benefit-text">
+                <h4>Networking & Conexiuni</h4>
+                <p>Întâlnești antreprenori cu viziuni similare și construiești relații valoroase</p>
               </div>
             </div>
-          )}
-        </form>
+
+            {/* Benefit 3 */}
+            <div className="benefit-item">
+              <div className="benefit-icon">✓</div>
+              <div className="benefit-text">
+                <h4>Recomandări</h4>
+                <p>Acces la recomandări de servicii și soluții verificate de comunitate</p>
+              </div>
+            </div>
+
+            {/* Benefit 4 */}
+            <div className="benefit-item">
+              <div className="benefit-icon">✓</div>
+              <div className="benefit-text">
+                <h4>Comunitate</h4>
+                <p>Faci parte dintr-o comunitate activă de antreprenori care se susțin reciproc</p>
+              </div>
+            </div>
+
+            {/* Benefit 5 */}
+            <div className="benefit-item">
+              <div className="benefit-icon">✓</div>
+              <div className="benefit-text">
+                <h4>Unitate</h4>
+                <p>Spirit de echipă și colaborare pentru atingerea obiectivelor comune</p>
+              </div>
+            </div>
+
+            {/* Benefit 6 */}
+            <div className="benefit-item">
+              <div className="benefit-icon">✓</div>
+              <div className="benefit-text">
+                <h4>Avantaje</h4>
+                <p>Beneficii exclusive pentru membrii BIZZ.CLUB</p>
+              </div>
+            </div>
+          </div>
+
+          <div className="copyright">
+            © 2026 BIZZ.CLUB Satu Mare |{' '}
+            <a href="https://satumare.bizz.club/politica-de-confidentialitate" target="_blank" rel="noopener noreferrer">
+              Politica de confidențialitate
+            </a>
+            {' | Powered by '}
+            <a href="https://deeplogic.ro" target="_blank" rel="noopener noreferrer">
+              DeepLogic
+            </a>
+          </div>
+        </div>
       </div>
-    </div>
+    </>
   );
 }

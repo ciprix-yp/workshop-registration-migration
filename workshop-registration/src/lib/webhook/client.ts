@@ -66,7 +66,7 @@ export function buildWebhookPayload(
     paymentSum,
     invoice: {
       type: formData.invoiceType,
-      company: formData.companieFirma || '',
+      company: formData.companyName || '',
       cui: formData.cui || '',
     },
   };
