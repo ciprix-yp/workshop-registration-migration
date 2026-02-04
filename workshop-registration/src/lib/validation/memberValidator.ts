@@ -55,14 +55,23 @@ function parseFullName(fullName: string): Array<{ first: string; last: string }>
 }
 
 /**
+ * Remove diacritics from string
+ * Example: "Ionuț" -> "Ionut"
+ */
+function removeDiacritics(str: string): string {
+  return str.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+}
+
+/**
  * Normalize name for comparison
  * - Convert to lowercase
+ * - Remove diacritics
  * - Remove all spaces
  * - Returns both "FirstLast" and "LastFirst" combinations
  */
 function normalizeName(firstName: string, lastName: string): string[] {
-  const first = firstName.toLowerCase().replace(/\s+/g, '');
-  const last = lastName.toLowerCase().replace(/\s+/g, '');
+  const first = removeDiacritics(firstName.toLowerCase()).replace(/\s+/g, '');
+  const last = removeDiacritics(lastName.toLowerCase()).replace(/\s+/g, '');
 
   return [
     first + last,    // "prenumenume"
@@ -97,7 +106,7 @@ function phonesMatch(phone1: string, phone2: string): boolean {
  * Normalize email for comparison
  */
 function normalizeEmail(email: string): string {
-  return email.toLowerCase().trim();
+  return removeDiacritics(email.toLowerCase().trim());
 }
 
 /**
@@ -149,7 +158,7 @@ export function validateMember(
 
     // Priority 1: Name + Phone match
     if (nameMatches(userData.name, member) &&
-        phonesMatch(userPhone, memberPhone)) {
+      phonesMatch(userPhone, memberPhone)) {
       return {
         isMember: true,
         matchedBy: 'name+phone',
@@ -159,7 +168,7 @@ export function validateMember(
 
     // Priority 2: Name + Email match
     if (nameMatches(userData.name, member) &&
-        userEmail === memberEmail) {
+      userEmail === memberEmail) {
       return {
         isMember: true,
         matchedBy: 'name+email',
