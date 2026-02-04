@@ -79,7 +79,7 @@ export default function RegistrationPage() {
       const data = await response.json();
 
       if (!response.ok) {
-        setError(data.error || 'Eroare la verificare');
+        setError(data.details ? `${data.error} (${data.details})` : (data.error || 'Eroare la verificare'));
         return;
       }
 

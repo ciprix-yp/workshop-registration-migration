@@ -12,6 +12,8 @@ import { getWorkshopConfig } from '@/config/workshops';
  * EXACT replica of original code.gs checkMemberStatus function
  */
 export async function POST(request: NextRequest) {
+  // Debug log to confirm new deployment
+  console.log(`[POST /api/check-member] Request received at ${new Date().toISOString()}`);
   try {
     const body = await request.json();
     const { name, email, phone, workshopSlug } = body;
