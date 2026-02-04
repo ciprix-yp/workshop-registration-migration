@@ -1,7 +1,0 @@
-{
-  "$schema": "https://openapi.vercel.sh/vercel.json",
-  "buildCommand": "cd workshop-registration && npm run build",
-  "devCommand": "cd workshop-registration && npm run dev",
-  "installCommand": "cd workshop-registration && npm install",
-  "outputDirectory": "workshop-registration/.next"
-}
