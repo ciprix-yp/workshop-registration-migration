@@ -37,7 +37,7 @@ export async function getWorkshopConfig(sheetId: string): Promise<Record<string,
     try {
       const response = await sheets.spreadsheets.values.get({
         spreadsheetId: sheetId,
-        range: `${sheetName}!A:B`,
+        range: `'${sheetName}'!A:B`,
       });
 
       const rows = response.data.values || [];
@@ -70,7 +70,7 @@ export async function getMembers(sheetId: string): Promise<Member[]> {
 
   // Try to find members sheet (flexible naming)
   // Added "Raport Membrii" and "Raport Membri" for Romanian member reports
-  const memberSheetNames = ['Raport Membrii', 'Raport Membri', 'Membri', 'Membrii', 'Members'];
+  const memberSheetNames = ['Raport membri', 'Raport Membrii', 'Raport Membri', 'Membri', 'Membrii', 'Members'];
 
   console.log(`[getMembers] Searching for members sheet in: ${memberSheetNames.join(', ')}`);
 
@@ -78,7 +78,7 @@ export async function getMembers(sheetId: string): Promise<Member[]> {
     try {
       const response = await sheets.spreadsheets.values.get({
         spreadsheetId: sheetId,
-        range: `${sheetName}!A2:G`, // Read all columns including Funcție and Grupă
+        range: `'${sheetName}'!A2:G`, // Read all columns including Funcție and Grupă
       });
 
       const rows = response.data.values || [];
@@ -99,7 +99,7 @@ export async function getMembers(sheetId: string): Promise<Member[]> {
         telefon: (row[4] || '').trim(),
       }));
     } catch (error) {
-      console.log(`[getMembers] Sheet "${sheetName}" not found, trying next...`);
+      console.log(`[getMembers] Sheet "${sheetName}" not found or error: ${error}`);
       // Try next sheet name
       continue;
     }
@@ -146,7 +146,7 @@ export async function appendRegistration(
     try {
       await sheets.spreadsheets.values.append({
         spreadsheetId: sheetId,
-        range: `${sheetName}!A:O`,
+        range: `'${sheetName}'!A:O`,
         valueInputOption: 'USER_ENTERED',
         requestBody: {
           values: [row],

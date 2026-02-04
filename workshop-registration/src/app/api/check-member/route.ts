@@ -90,7 +90,10 @@ export async function POST(request: NextRequest) {
   } catch (error) {
     console.error('Error checking member:', error);
     return NextResponse.json(
-      { error: 'Eroare la verificarea statusului de membru. Încearcă din nou.' },
+      {
+        error: 'Eroare la verificarea statusului de membru. Încearcă din nou.',
+        details: error instanceof Error ? error.message : String(error)
+      },
       { status: 500 }
     );
   }
