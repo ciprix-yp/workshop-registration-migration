@@ -2,8 +2,8 @@
 
 **Project**: Workshop Registration Form - Google Apps Script → Vercel
 **Started**: 2026-02-02
-**Last Updated**: 2026-02-02
-**Status**: 🟢 Phase 1-3 Complete - Ready for Testing
+**Last Updated**: 2026-02-04
+**Status**: 🟢 Phase 1-3 Complete - Deployment Issues Resolved & Member Validation Enhanced
 
 ---
 
@@ -42,6 +42,11 @@
   - Added custom domain: `formular.bizzclub-satumare.app`
   - Configured DNS: CNAME to Vercel
   - ✅ DNS propagated successfully
+- [x] Debugged and Fixed Vercel Deployment Issues (Gemini 3 Pro)
+  - Fixed "No Next.js version detected" error
+  - Identified incorrect "Root Directory" and "Install Command" settings
+  - Removed conflicting `vercel.json` to allow Vercel UI settings to take precedence
+  - Verified local build success before deployment
 
 ### Phase 1: Core Infrastructure (2026-02-02) ✅
 - [x] Initialized Next.js 16 project with TypeScript
@@ -145,7 +150,7 @@
 - [ ] Test member validation
   - Known member email → should show "Bun venit înapoi!"
   - Unknown email → should show "Bun venit!"
-  - Test Romanian characters in names
+  - [x] Test Romanian characters in names (Implemented diacritic-insensitive matching - Gemini 3 Pro)
 - [ ] Test complete registration flow
   - Step 1 → Step 2 → Step 3
   - Test PF invoice (auto-fills name and CUI "0000000000000")
@@ -235,6 +240,15 @@
 - [ ] Update DNS (if custom domain)
 - [ ] Monitor initial usage
 - [ ] Set up Vercel Analytics (optional)
+
+### Updates Log (2026-02-04) - By Gemini 3 Pro
+- **Vercel Configuration Fix**: unresolved deployment errors due to conflicting `vercel.json` and UI settings.
+  - Diagnosis: Vercel was executing `cd workshop-registration` twice (once from Root Directory setting, once from `vercel.json`), causing "No such file" errors.
+  - Resolution: Removed `vercel.json` and instructed user to clean up Vercel UI "Install Command".
+- **Member Validation Enhancement**:
+  - Implemented `removeDiacritics` helper in `memberValidator.ts`.
+  - Updated validation logic to strip diacritics from both User Input and Sheet Data before comparison.
+  - Verified with 5/5 passing tests (e.g., "Ionuț" matches "Ionut").
 
 ---
 
