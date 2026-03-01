@@ -85,7 +85,7 @@ export async function POST(request: NextRequest) {
       Telefon: formData.phone,
       Provocare: formData.challenge,
       Rezultat: formData.result,
-      Nivel: formData.level,
+      Nivel: formData.frequency,
       Factura: formData.invoiceType,
       'Nume Firma': companyName,
       CUI: cui,

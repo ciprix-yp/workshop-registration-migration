@@ -53,7 +53,7 @@ export interface RegistrationFormData {
   phone: string;
   challenge: string;
   result: string;
-  level: string;
+  frequency: string;
 
   // Step 3
   invoiceType: InvoiceType;

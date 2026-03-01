@@ -8,7 +8,7 @@ import { useParams } from 'next/navigation';
  *
  * 3-Step Registration Flow:
  * Step 1: Hai să ne cunoaștem (name + email + phone)
- * Step 2: Setarea obiectivelor (challenge, result, level slider)
+ * Step 2: Setarea obiectivelor (challenge, result, frequency radio)
  * Step 3: Detalii Finale (invoice checkbox, GDPR, payment)
  */
 
@@ -38,7 +38,7 @@ export default function RegistrationPage() {
   // Step 2 - Objectives
   const [challenge, setChallenge] = useState('');
   const [result, setResult] = useState('');
-  const [level, setLevel] = useState('5');
+  const [frequency, setFrequency] = useState('');
 
   // Step 3 - Final Details
   const [invoiceNeeded, setInvoiceNeeded] = useState(false);
@@ -97,7 +97,7 @@ export default function RegistrationPage() {
   const handleObjectivesStep = (e: FormEvent) => {
     e.preventDefault();
 
-    if (!challenge || !result || !level) {
+    if (!challenge || !result || !frequency) {
       setError('Toate câmpurile sunt obligatorii');
       return;
     }
@@ -133,7 +133,7 @@ export default function RegistrationPage() {
         phone,
         challenge,
         result,
-        level,
+        frequency,
         invoiceType: invoiceNeeded ? 'PJ' : 'PF',
         companyName: invoiceNeeded ? companyName : name,
         cui: invoiceNeeded ? cui : '0000000000000',
@@ -352,53 +352,6 @@ export default function RegistrationPage() {
         textarea {
           min-height: 120px;
           resize: vertical;
-        }
-
-        input[type="range"] {
-          width: 100%;
-          height: 6px;
-          border-radius: 3px;
-          outline: none;
-          -webkit-appearance: none;
-          appearance: none;
-          background: #e0e0e0;
-        }
-
-        input[type="range"]::-webkit-slider-thumb {
-          -webkit-appearance: none;
-          appearance: none;
-          width: 20px;
-          height: 20px;
-          border-radius: 50%;
-          background: var(--primary-color);
-          cursor: pointer;
-          box-shadow: 0 2px 4px rgba(0,0,0,0.2);
-        }
-
-        input[type="range"]::-moz-range-thumb {
-          width: 20px;
-          height: 20px;
-          border-radius: 50%;
-          background: var(--primary-color);
-          cursor: pointer;
-          border: none;
-          box-shadow: 0 2px 4px rgba(0,0,0,0.2);
-        }
-
-        .range-labels {
-          display: flex;
-          justify-content: space-between;
-          margin-top: 5px;
-          font-size: 12px;
-          color: #666;
-        }
-
-        .level-value {
-          font-size: 20px;
-          font-weight: bold;
-          color: var(--primary-color);
-          text-align: center;
-          margin-top: 10px;
         }
 
         .checkbox-group {
@@ -775,24 +728,36 @@ export default function RegistrationPage() {
               </div>
 
               <div className="form-group">
-                <label htmlFor="level">Nivel actual (1-10) *</label>
-                <input
-                  type="range"
-                  id="level"
-                  name="level"
-                  min="1"
-                  max="10"
-                  value={level}
-                  onChange={(e) => setLevel(e.target.value)}
-                  style={{
-                    background: `linear-gradient(to right, var(--primary-color) 0%, var(--primary-color) ${(parseInt(level) - 1) * 11.11}%, #e0e0e0 ${(parseInt(level) - 1) * 11.11}%, #e0e0e0 100%)`
-                  }}
-                />
-                <div className="level-value">{level}</div>
-                <div className="range-labels">
-                  <span>1</span>
-                  <span>10</span>
-                </div>
+                <label>Cât de des ai dori să organizăm workshopuri aplicate? *</label>
+                {(['Lunar', 'Trimestrial', 'Mai rar'] as const).map((option) => (
+                  <label
+                    key={option}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '10px',
+                      padding: '12px 16px',
+                      marginBottom: '8px',
+                      border: `2px solid ${frequency === option ? 'var(--primary-color)' : '#ced4da'}`,
+                      borderRadius: '8px',
+                      cursor: 'pointer',
+                      fontWeight: frequency === option ? 700 : 400,
+                      color: frequency === option ? 'var(--primary-color)' : 'var(--text-color)',
+                      background: frequency === option ? 'rgba(0,155,158,0.06)' : '#fff',
+                      transition: 'all 0.15s',
+                    }}
+                  >
+                    <input
+                      type="radio"
+                      name="frequency"
+                      value={option}
+                      checked={frequency === option}
+                      onChange={() => setFrequency(option)}
+                      style={{ accentColor: 'var(--primary-color)', width: '18px', height: '18px', flexShrink: 0 }}
+                    />
+                    {option}
+                  </label>
+                ))}
               </div>
 
               <button type="submit" className="btn btn-primary">
