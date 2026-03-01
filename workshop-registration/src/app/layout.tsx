@@ -15,9 +15,6 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   title: "Înscriere Workshop BIZZ.CLUB Satu Mare",
   description: "Formular de înscriere la workshopurile BIZZ.CLUB Satu Mare",
-  icons: {
-    icon: '/logo.png',
-  },
 };
 
 export default function RootLayout({
