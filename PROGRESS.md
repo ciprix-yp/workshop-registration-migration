@@ -29,7 +29,7 @@
 - [x] Configured Vercel MCP server
   - Created `~/.config/claude-code/mcp_settings.json`
   - Using `@open-mcp/vercel` server
-  - Added Vercel authentication token
+  - Added Vercel authentication token (stored locally, not in repo)
   - **Action Required**: Restart Claude Code to activate MCP
 - [x] Git & GitHub Setup
   - Initialized Git repository
@@ -254,9 +254,11 @@
 
 ## 🔑 Critical Information
 
+> ⚠️ Toate valorile sensibile (Sheet ID, credențiale webhook, chei) se păstrează DOAR în environment variables (Vercel / `.env.local`), niciodată în acest repo.
+
 ### Original Google Apps Script Details
 
-**Sheet ID**: `1doznv9U9oT1pA_MJwVrNPYA-9sK6Ap7VMWphOJgD14A`
+**Sheet ID**: `<GOOGLE_SHEET_ID — în env vars>`
 
 **Sheet Tabs**:
 1. "Configurare Workshop" - Config (keys: WORKSHOP_NAME, LINK_PLATA_MEMBRU, LINK_PLATA_STANDARD, WEBHOOK_URL)
@@ -264,18 +266,18 @@
 3. "Inscrieri" - Registrations (14 columns, see CLAUDE.md)
 
 **n8n Webhook**:
-- URL: `https://youprotect.app.n8n.cloud/webhook/83507047-9b65-4640-8453-a6657a5bd037`
-- Auth: Basic (User: `BIZZ.CLUB-SM`, Pass: `BizzClub!2026Safe`)
+- URL: în env var `N8N_WEBHOOK_URL`
+- Auth: Basic — user/parolă în env vars (`N8N_WEBHOOK_USER` / `N8N_WEBHOOK_PASS`), NU în repo
 
-**Stripe Links**:
-- Member: `https://buy.stripe.com/fZu00ifCQ8TkgLLbR05ZC0a`
-- Standard: `https://buy.stripe.com/eVqcN4cqE2uWeDD9IS5ZC0b`
+**Stripe Links** (link-uri publice de plată, în env vars):
+- Member: env var `STRIPE_MEMBER_LINK`
+- Standard: env var `STRIPE_STANDARD_LINK`
 
 ### Vercel MCP Configuration
 
-**MCP Config Location**: `~/.config/claude-code/mcp_settings.json`
+**MCP Config Location**: `~/.config/claude-code/mcp_settings.json` (local, nu în repo)
 
-**Status**: ✅ Configured with authentication token
+**Status**: ✅ Configured with authentication token (stored locally)
 
 **MCP Server**: `@open-mcp/vercel` (runs via npx)
 
