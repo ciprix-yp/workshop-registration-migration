@@ -86,9 +86,9 @@ Marketing | Status Membru | Suma
 
 **Endpoint**: n8n webhook (configured in Sheets)
 
-**Authentication**: Basic Auth
-- Username: `BIZZ.CLUB-SM`
-- Password: `BizzClub!2026Safe`
+**Authentication**: Basic Auth — credențiale păstrate DOAR în env vars, NU în repo
+- Username: env var `N8N_WEBHOOK_USER`
+- Password: env var `N8N_WEBHOOK_PASS`
 
 **Payload Structure**:
 ```json
@@ -159,7 +159,7 @@ Marketing | Status Membru | Suma
 
 ```bash
 # Google Sheets (if keeping Sheets)
-GOOGLE_SHEET_ID=1doznv9U9oT1pA_MJwVrNPYA-9sK6Ap7VMWphOJgD14A
+GOOGLE_SHEET_ID=your-google-sheet-id
 GOOGLE_SERVICE_ACCOUNT_EMAIL=...
 GOOGLE_PRIVATE_KEY=...
 
@@ -167,9 +167,9 @@ GOOGLE_PRIVATE_KEY=...
 DATABASE_URL=postgresql://...
 
 # n8n Webhook
-N8N_WEBHOOK_URL=https://youprotect.app.n8n.cloud/webhook/...
-N8N_WEBHOOK_USER=BIZZ.CLUB-SM
-N8N_WEBHOOK_PASS=BizzClub!2026Safe
+N8N_WEBHOOK_URL=https://your-n8n-instance/webhook/...
+N8N_WEBHOOK_USER=your-webhook-user
+N8N_WEBHOOK_PASS=your-webhook-password
 
 # Stripe (from config sheet or env)
 # Note: These can stay in Sheets if maintaining config tab
