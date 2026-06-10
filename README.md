@@ -15,7 +15,7 @@ Migrarea aplicației de înscriere la workshop de la Google Apps Script la Next.
   - Status curent al proiectului
   - Task-uri completate și rămase
   - Decizii care trebuie luate
-  - Informații critice (credentials, structuri)
+  - Informații critice (structuri de date)
   - Instrucțiuni pentru continuare după context loss
 
 - **[VERCEL-SETUP.md](VERCEL-SETUP.md)** - Ghid setup Vercel & Custom Domain
@@ -122,17 +122,19 @@ npm run dev
 
 ### Integrări
 
+> ⚠️ Toate valorile sensibile (Sheet ID, credențiale webhook, chei) se păstrează DOAR în environment variables (Vercel / `.env.local`), niciodată în repo.
+
 **Google Sheets**:
-- ID: `1doznv9U9oT1pA_MJwVrNPYA-9sK6Ap7VMWphOJgD14A`
+- ID: `<GOOGLE_SHEET_ID — în env vars>`
 - Tab-uri: "Configurare Workshop", "Membri", "Inscrieri"
 
 **n8n Webhook**:
-- URL: `https://youprotect.app.n8n.cloud/webhook/83507047-9b65-4640-8453-a6657a5bd037`
-- Auth: Basic (`BIZZ.CLUB-SM` / `BizzClub!2026Safe`)
+- URL: configurat în env var `N8N_WEBHOOK_URL`
+- Auth: Basic — user/parolă în env vars (`N8N_WEBHOOK_USER` / `N8N_WEBHOOK_PASS`), NU în repo
 
-**Stripe**:
-- Member link: `https://buy.stripe.com/fZu00ifCQ8TkgLLbR05ZC0a`
-- Standard link: `https://buy.stripe.com/eVqcN4cqE2uWeDD9IS5ZC0b`
+**Stripe** (link-uri publice de plată):
+- Member link: în env var `STRIPE_MEMBER_LINK`
+- Standard link: în env var `STRIPE_STANDARD_LINK`
 
 ## 🛠️ Tools Instalate
 
@@ -144,7 +146,7 @@ npm run dev
 
 ### MCP Servers
 - `@open-mcp/vercel` - Vercel deployment și management
-  - **Status**: Configurat cu token ✅
+  - **Status**: Configurat cu token (în config local, NU în repo) ✅
   - **Acțiune**: Restart Claude Code pentru activare
 
 ## 📖 Comenzi Utile
