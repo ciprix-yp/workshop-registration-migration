@@ -1,0 +1,48 @@
+# Pings ClickHouse every 6 hours and inserts a heartbeat row.
+# Silently skipped when CLICKHOUSE_URL secret is not configured.
+
+name: ClickHouse Heartbeat
+
+on:
+  schedule:
+    - cron: '0 */6 * * *'
+  workflow_dispatch:
+
+jobs:
+  heartbeat:
+    name: Ping ClickHouse
+    runs-on: ubuntu-latest
+    env:
+      CH_URL: ${{ secrets.CLICKHOUSE_URL }}
+      CH_USER: ${{ secrets.CLICKHOUSE_USER }}
+      CH_PASSWORD: ${{ secrets.CLICKHOUSE_PASSWORD }}
+      CH_DB: ${{ secrets.CLICKHOUSE_DB }}
+
+    steps:
+      - name: Ping & heartbeat
+        run: |
+          if [ -z "$CH_URL" ]; then
+            echo "CLICKHOUSE_URL not set — skipping (Sheets-only mode)"
+            exit 0
+          fi
+
+          DB="${CH_DB:-railway}"
+
+          STATUS=$(curl -s -o /dev/null -w "%{http_code}" \
+            -H "X-ClickHouse-User: $CH_USER" \
+            -H "X-ClickHouse-Key: $CH_PASSWORD" \
+            "${CH_URL}/?query=SELECT+1")
+
+          if [ "$STATUS" != "200" ]; then
+            echo "::error::ClickHouse ping failed (HTTP $STATUS)"
+            exit 1
+          fi
+
+          echo "ClickHouse healthy ✓ (HTTP $STATUS)"
+
+          curl -s -f \
+            -H "X-ClickHouse-User: $CH_USER" \
+            -H "X-ClickHouse-Key: $CH_PASSWORD" \
+            "${CH_URL}/?query=INSERT+INTO+${DB}.heartbeats+FORMAT+JSONEachRow" \
+            --data-raw '{"source":"github-actions"}' \
+          && echo "Heartbeat row inserted ✓"
