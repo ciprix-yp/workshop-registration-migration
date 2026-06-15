@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getMembers, appendRegistration, getWorkshopConfig as getWorkshopConfigFromSheet } from '@/lib/sheets/client';
 import { validateMember } from '@/lib/validation/memberValidator';
 import { sendWebhook, buildWebhookPayload } from '@/lib/webhook/client';
+import { sinkRegistration } from '@/lib/ch-sink';
 import { getWorkshopConfig } from '@/config/workshops';
 import { RegistrationFormData, RegistrationRow } from '@/types/workshop';
 import { formatRomanianTimestamp } from '@/lib/utils/dateFormat';
@@ -97,6 +98,22 @@ export async function POST(request: NextRequest) {
 
     // Save to Google Sheets
     await appendRegistration(config.googleSheetId, registrationRow);
+
+    // Sink to ClickHouse (fire-and-forget — silent no-op if CLICKHOUSE_URL not set)
+    sinkRegistration({
+      workshop:      workshopName,
+      email:         formData.email,
+      nume:          formData.name,
+      telefon:       formData.phone,
+      provocare:     formData.challenge,
+      rezultat:      formData.result,
+      nivel:         formData.frequency,
+      factura:       formData.invoiceType,
+      status_membru: statusMembru,
+      suma,
+      gdpr:          formData.gdprConsent,
+      marketing:     formData.marketingConsent,
+    }).catch(() => {});
 
     // Send webhook (non-blocking - don't wait for result)
     const webhookPayload = buildWebhookPayload(
